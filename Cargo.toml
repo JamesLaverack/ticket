@@ -6,3 +6,4 @@ description = "Insert issue tracking ticket references into your commit messages
 
 [dependencies]
 clap = "~2.31"
+git2 = "0.6"

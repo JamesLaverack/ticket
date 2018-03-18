@@ -1,6 +1,10 @@
 #[macro_use]
 extern crate clap;
+extern crate git2;
+
 use clap::{Arg, App, SubCommand};
+use git2::Repository;
+use std::env;
 
 fn main() {
     let arguments = App::new(crate_name!())
@@ -47,10 +51,17 @@ fn main() {
             }
         },
         ("show", _) => {
-            println!("Show ticket reference");
+            match Repository::discover(env::current_dir().unwrap()) {
+                Ok(repo) => match repo.workdir() {
+                    Some(workdir) => println!("Repo path is {}", workdir.display()),
+                    None => eprintln!("This git repository doesn't have a working directory."),
+                }
+                Err(_) => eprintln!("Can't find a git repository from the current directory."),
+            };
         },
         ("set", Some(set_matches)) => {
             println!("Setting ticket reference to {}", set_matches.value_of("TICKET_REFERENCE").unwrap());
+            
         },
         ("insert-ticket-reference", Some(insert_matches)) => {
             println!("Inserting ticket reference to file {}", insert_matches.value_of("COMMIT_MSG_FILE").unwrap());
