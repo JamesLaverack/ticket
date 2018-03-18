@@ -1,9 +1,10 @@
+#[macro_use]
 extern crate clap;
 use clap::{Arg, App, SubCommand};
 
 fn main() {
     let matches = App::new("ticket")
-        .version("0.1.0")
+        .version(crate_version!())
         .author("James Laverack <james@jameslaverack.com>")
         .about("Automatically insert ticket references into git commit messages.")
         .arg(Arg::with_name("verbose")
