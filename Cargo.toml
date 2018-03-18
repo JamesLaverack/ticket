@@ -2,6 +2,7 @@
 name = "ticket"
 version = "0.1.0"
 authors = ["James Laverack <james@jameslaverack.com>"]
+description = "Insert issue tracking ticket references into your commit messages automatically."
 
 [dependencies]
 clap = "~2.31"

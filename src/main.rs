@@ -3,10 +3,10 @@ extern crate clap;
 use clap::{Arg, App, SubCommand};
 
 fn main() {
-    let arguments = App::new("ticket")
+    let arguments = App::new(crate_name!())
         .version(crate_version!())
         .author(crate_authors!())
-        .about("Automatically insert ticket references into git commit messages.")
+        .about(crate_description!())
         .arg(Arg::with_name("verbose")
              .long("verbose")
              .help("Enable verbose output"))
