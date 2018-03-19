@@ -4,12 +4,34 @@ extern crate git2;
 
 use clap::{Arg, App, SubCommand};
 use git2::Repository;
-use std::io::Read;
+use std::io::{Read, Error, ErrorKind};
 use std::fs::File;
 use std::env;
+use std::io;
+
+const TICKETFILE_NAME:&'static str = ".ticket";
+
+fn read_ticketfile() -> io::Result<String> {
+    match Repository::discover(env::current_dir().unwrap()) {
+        Ok(repo) => match repo.workdir() {
+            Some(workdir) => {
+                let ticketfile = workdir.join(TICKETFILE_NAME);
+                if !ticketfile.exists() {
+                    return Err(Error::new(ErrorKind::Other, "No ticket reference for this repository, use `ticket set` to set one."))
+                }
+
+                let mut contents = String::new();
+                File::open(ticketfile)?.read_to_string(&mut contents)?;
+
+                return Ok(contents);
+            },
+            None => return Err(Error::new(ErrorKind::Other, "This git repository doesn't have a working directory.")),
+        }
+        Err(_) => return Err(Error::new(ErrorKind::Other, "Can't find a git repository from the current directory.")),
+    };
+}
 
 fn main() {
-    let ticket_file_name = ".ticket";
     
     let arguments = App::new(crate_name!())
         .version(crate_version!())
@@ -55,23 +77,10 @@ fn main() {
             }
         },
         ("show", _) => {
-            match Repository::discover(env::current_dir().unwrap()) {
-                Ok(repo) => match repo.workdir() {
-                    Some(workdir) => {
-                        println!("Repo path is {}", workdir.display());
-                        let mut f = File::open(workdir.join(ticket_file_name))
-                            .expect("No ticket reference for this repository, use `ticket set` to set one.");
-
-                        let mut contents = String::new();
-                        f.read_to_string(&mut contents)
-                            .expect("Error reading ticketfile");
-
-                        println!("Ticket reference: {}", contents);
-                    },
-                    None => eprintln!("This git repository doesn't have a working directory."),
-                }
-                Err(_) => eprintln!("Can't find a git repository from the current directory."),
-            };
+            match read_ticketfile() {
+                Ok(contents) => println!("Ticket reference: {}", contents),
+                Err(error) => eprintln!("{}", error),
+            }
         },
         ("set", Some(set_matches)) => {
             println!("Setting ticket reference to {}", set_matches.value_of("TICKET_REFERENCE").unwrap());
