@@ -1,6 +1,8 @@
 #[macro_use]
 extern crate clap;
 extern crate git2;
+#[macro_use]
+extern crate text_io;
 
 use clap::{Arg, App, SubCommand};
 use git2::Repository;
@@ -9,20 +11,26 @@ use std::fs::File;
 use std::path::PathBuf;
 use std::env;
 use std::io;
+use std::fs;
 
 const TICKETFILE_NAME:&'static str = ".ticket";
 
-fn get_ticketfile() -> io::Result<PathBuf> {
-    match Repository::discover(env::current_dir().unwrap()) {
-        Ok(repo) => match repo.workdir() {
-            Some(workdir) => {
-                return Ok(workdir.join(TICKETFILE_NAME));
+const GIT_HOOK:&'static str = "#!/bin/sh
+ticket insert-ticket-reference $1
+";
 
-            },
-            None => return Err(Error::new(ErrorKind::Other, "This git repository doesn't have a working directory.")),
+fn get_repo() -> io::Result<Repository> {
+    match Repository::discover(env::current_dir().unwrap()) {
+        Ok(repo) => Ok(repo),
+        Err(_) => Err(Error::new(ErrorKind::Other, "Can't find a git repository from the current directory.")),
+    }
+}
+    
+fn get_ticketfile() -> io::Result<PathBuf> {
+    match get_repo()?.workdir() {
+            Some(workdir) => Ok(workdir.join(TICKETFILE_NAME)),
+            None => Err(Error::new(ErrorKind::Other, "This git repository doesn't have a working directory.")),
         }
-        Err(_) => return Err(Error::new(ErrorKind::Other, "Can't find a git repository from the current directory.")),
-    };
 }
 
 fn read_commit_msg(filepath:PathBuf) -> io::Result<String> {
@@ -63,6 +71,34 @@ fn write_ticketfile(ticket_reference :&str) -> io::Result<()> {
     file.write_all(ticket_reference.as_bytes())
 }
 
+fn install_git_hook() -> io::Result<()> {
+    let repo = get_repo()?;
+    let hook_dir = repo.path().join("hooks");
+    let hook_path = hook_dir.join("prepare-commit-msg");
+
+    if hook_path.exists() {
+        // We would overwrite if we did this...
+        println!("A `prepare-commit-msg` git hook already exists, overwrite? (Yes/No) ");
+        let line: String = read!("{}\n");
+        // Early return if no permission
+        if line.to_lowercase() != "yes" {
+            println!("Bye.");
+            return Ok(());
+        }
+
+        // Take a backup of the existing hook
+        println!("Backing up existing hook...");
+        let backup_path = hook_dir.join("prepare-commit-msg.backup");
+        fs::rename(hook_path.as_path(), backup_path.as_path())?;
+        println!("Existing hook moved to {:?}", backup_path);
+    }
+
+    let mut hook_file = File::create(hook_path)?;
+    hook_file.write_all(GIT_HOOK.as_bytes())?;
+    println!("Ticket git hook installed, happy hacking!");
+    Ok(())
+}
+
 fn main() {
     let arguments = App::new(crate_name!())
         .version(crate_version!())
@@ -98,7 +134,11 @@ fn main() {
 
     match matches.subcommand() {
         ("init", _) => {
-            println!("Init ticket");
+            println!("Initilising ticket...");
+            match install_git_hook() {
+                Ok(_) => {},
+                Err(e) => eprintln!("Failed to install ticket: {}", e),
+            }
         },
         ("remove", Some(remove_matches)) => {
             if remove_matches.is_present("force") {
