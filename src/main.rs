@@ -4,7 +4,7 @@ extern crate git2;
 
 use clap::{Arg, App, SubCommand};
 use git2::Repository;
-use std::io::{BufRead, BufReader, Write, Error, ErrorKind};
+use std::io::{BufRead, BufReader, Read, Write, Error, ErrorKind};
 use std::fs::File;
 use std::path::PathBuf;
 use std::env;
@@ -23,6 +23,28 @@ fn get_ticketfile() -> io::Result<PathBuf> {
         }
         Err(_) => return Err(Error::new(ErrorKind::Other, "Can't find a git repository from the current directory.")),
     };
+}
+
+fn read_commit_msg(filepath:PathBuf) -> io::Result<String> {
+    let mut file = File::open(filepath)?;
+    let mut contents = String::new();
+    file.read_to_string(&mut contents)?;
+    Ok(contents)
+}
+
+fn update_commit_msg(commit_msg_filepath:PathBuf) -> io::Result<()> {
+    let path = commit_msg_filepath.as_path();
+    let ticket_reference = read_ticketfile()?;
+    let current_msg = read_commit_msg(path.to_path_buf())?;
+
+    let mut final_msg = String::new();
+    final_msg.push_str(&ticket_reference);
+    final_msg.push_str(&current_msg);
+    
+    let mut commit_msg_file = File::create(path)?;
+    commit_msg_file.write_all(final_msg.as_bytes())?;
+
+    Ok(())
 }
 
 fn read_ticketfile() -> io::Result<String> {
@@ -87,7 +109,7 @@ fn main() {
         },
         ("show", _) => {
             match read_ticketfile() {
-                Ok(contents) => println!("Ticket reference: {}", contents),
+                Ok(ticket_reference) => println!("Ticket reference: {}", ticket_reference),
                 Err(error) => eprintln!("{}", error),
             }
         },
@@ -99,7 +121,10 @@ fn main() {
             }
         },
         ("insert-ticket-reference", Some(insert_matches)) => {
-            println!("Inserting ticket reference to file {}", insert_matches.value_of("COMMIT_MSG_FILE").unwrap());
+            match update_commit_msg(PathBuf::from(insert_matches.value_of("COMMIT_MSG_FILE").unwrap())) {
+                Ok(_) => {},
+                Err(e) => eprintln!("Ticket error: {}", e),
+            }
         },
         ("", None) => println!("A command is required, try `--help`."),
         _ => unreachable!()
