@@ -48,6 +48,8 @@ fn update_commit_msg(commit_msg_filepath:PathBuf) -> io::Result<()> {
 
     let mut final_msg = String::new();
     final_msg.push_str(&ticket_reference);
+    // Put in a space for aesthetic reasons
+    final_msg.push_str(" ");
     final_msg.push_str(&current_msg);
     
     let mut commit_msg_file = File::create(path)?;
