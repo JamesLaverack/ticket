@@ -74,19 +74,22 @@ fn write_ticketfile(ticket_reference :&str) -> io::Result<()> {
     file.write_all(ticket_reference.as_bytes())
 }
 
-fn install_git_hook() -> io::Result<()> {
+fn install_git_hook(force:bool) -> io::Result<()> {
     let repo = get_repo()?;
     let hook_dir = repo.path().join("hooks");
     let hook_path = hook_dir.join("prepare-commit-msg");
 
     if hook_path.exists() {
-        // We would overwrite if we did this...
-        println!("A `prepare-commit-msg` git hook already exists, overwrite? (Yes/No) ");
-        let line: String = read!("{}\n");
-        // Early return if no permission
-        if line.to_lowercase() != "yes" {
-            println!("Bye.");
-            return Ok(());
+        // A prepare-commit-msg hook already exists
+        // If we're not told to force overwrite then ask if we should
+        if !force {
+            println!("A `prepare-commit-msg` git hook already exists, overwrite? (Yes/No) ");
+            let line: String = read!("{}\n");
+            // Early return if no permission
+            if line.to_lowercase() != "yes" {
+                println!("Bye.");
+                return Ok(());
+            }
         }
 
         // Take a backup of the existing hook
@@ -115,7 +118,11 @@ fn main() {
              .long("verbose")
              .help("Enable verbose output"))
         .subcommand(SubCommand::with_name("init")
-                    .about("Initilise ticket in a git repository by installing the prepare-commit-msg hook."))
+                    .about("Initilise ticket in a git repository by installing the prepare-commit-msg hook.")
+                    .arg(Arg::with_name("force")
+                         .short("f")
+                         .long("force")
+                         .help("Force overwriting of any existing hook with no prompt")))
         .subcommand(SubCommand::with_name("remove")
                     .about("Remove ticket from a repository. This removes the prepare-commit-msg hook and removes any .ticket files from the repository root.")
                     .arg(Arg::with_name("force")
@@ -140,9 +147,9 @@ fn main() {
     let matches = arguments.get_matches();
 
     match matches.subcommand() {
-        ("init", _) => {
+        ("init", Some(init_matches)) => {
             println!("Initilising ticket...");
-            match install_git_hook() {
+            match install_git_hook(init_matches.is_present("force")) {
                 Ok(_) => {},
                 Err(e) => eprintln!("Failed to install ticket: {}", e),
             }
