@@ -7,7 +7,8 @@ extern crate text_io;
 use clap::{Arg, App, SubCommand};
 use git2::Repository;
 use std::io::{BufRead, BufReader, Read, Write, Error, ErrorKind};
-use std::fs::File;
+use std::fs::{File, OpenOptions};
+use std::os::unix::fs::OpenOptionsExt;
 use std::path::PathBuf;
 use std::env;
 use std::io;
@@ -93,7 +94,11 @@ fn install_git_hook() -> io::Result<()> {
         println!("Existing hook moved to {:?}", backup_path);
     }
 
-    let mut hook_file = File::create(hook_path)?;
+    let mut hook_file = OpenOptions::new()
+        .create(true)
+        .write(true)
+        .mode(0o770)
+        .open(hook_path)?;
     hook_file.write_all(GIT_HOOK.as_bytes())?;
     println!("Ticket git hook installed, happy hacking!");
     Ok(())
