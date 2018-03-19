@@ -4,7 +4,7 @@ extern crate git2;
 
 use clap::{Arg, App, SubCommand};
 use git2::Repository;
-use std::io::{Read, Error, ErrorKind};
+use std::io::{Read, Write, Error, ErrorKind};
 use std::fs::File;
 use std::path::PathBuf;
 use std::env;
@@ -16,12 +16,8 @@ fn get_ticketfile() -> io::Result<PathBuf> {
     match Repository::discover(env::current_dir().unwrap()) {
         Ok(repo) => match repo.workdir() {
             Some(workdir) => {
-                let ticketfile = workdir.join(TICKETFILE_NAME);
-                return if !ticketfile.exists() {
-                    Err(Error::new(ErrorKind::Other, "No ticket reference for this repository, use `ticket set` to set one."))
-                } else {
-                    Ok(ticketfile)
-                }
+                return Ok(workdir.join(TICKETFILE_NAME));
+
             },
             None => return Err(Error::new(ErrorKind::Other, "This git repository doesn't have a working directory.")),
         }
@@ -31,8 +27,18 @@ fn get_ticketfile() -> io::Result<PathBuf> {
 
 fn read_ticketfile() -> io::Result<String> {
     let mut contents = String::new();
-    File::open(get_ticketfile()?)?.read_to_string(&mut contents)?;
-    return Ok(contents);
+    let ticketfile = get_ticketfile()?;
+    return if !ticketfile.exists() {
+        Err(Error::new(ErrorKind::Other, "No ticket reference for this repository, use `ticket set` to set one."))
+    } else {
+        File::open(ticketfile)?.read_to_string(&mut contents)?;
+        Ok(contents)
+    }
+}
+
+fn write_ticketfile(ticket_reference :&str) -> io::Result<()> {
+    let mut file = File::create(get_ticketfile()?)?;
+    file.write_all(ticket_reference.as_bytes())
 }
 
 fn main() {
@@ -86,8 +92,11 @@ fn main() {
             }
         },
         ("set", Some(set_matches)) => {
-            println!("Setting ticket reference to {}", set_matches.value_of("TICKET_REFERENCE").unwrap());
-            
+            let ticket_reference = set_matches.value_of("TICKET_REFERENCE").unwrap();
+            match write_ticketfile(ticket_reference) {
+                Ok(_) => println!("Set ticket reference to {}", ticket_reference),
+                Err(e) => eprintln!("Failed to set ticket reference: {}", e),
+            }
         },
         ("insert-ticket-reference", Some(insert_matches)) => {
             println!("Inserting ticket reference to file {}", insert_matches.value_of("COMMIT_MSG_FILE").unwrap());
