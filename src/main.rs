@@ -36,7 +36,6 @@ fn read_ticketfile() -> io::Result<String> {
 }
 
 fn main() {
-    
     let arguments = App::new(crate_name!())
         .version(crate_version!())
         .author(crate_authors!())
