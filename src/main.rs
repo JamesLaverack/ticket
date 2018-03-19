@@ -4,7 +4,7 @@ extern crate git2;
 
 use clap::{Arg, App, SubCommand};
 use git2::Repository;
-use std::io::{Read, Write, Error, ErrorKind};
+use std::io::{BufRead, BufReader, Write, Error, ErrorKind};
 use std::fs::File;
 use std::path::PathBuf;
 use std::env;
@@ -31,7 +31,7 @@ fn read_ticketfile() -> io::Result<String> {
     return if !ticketfile.exists() {
         Err(Error::new(ErrorKind::Other, "No ticket reference for this repository, use `ticket set` to set one."))
     } else {
-        File::open(ticketfile)?.read_to_string(&mut contents)?;
+        BufReader::new(File::open(ticketfile)?).read_line(&mut contents)?;
         Ok(contents)
     }
 }
