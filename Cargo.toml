@@ -1,6 +1,6 @@
 [package]
 name = "ticket"
-version = "0.1.0"
+version = "0.2.0"
 authors = ["James Laverack <james@jameslaverack.com>"]
 description = "Insert issue tracking ticket references into your commit messages automatically."
 
