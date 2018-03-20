@@ -109,7 +109,8 @@ fn install_git_hook(force:bool) -> io::Result<()> {
         .mode(0o770)
         .open(hook_path)?;
     hook_file.write_all(GIT_HOOK.as_bytes())?;
-    println!("Ticket git hook installed, happy hacking!");
+    println!("Ticket git hook installed, happy hacking!
+P.S.: You probably want to put `.ticket` in your global gitignore file.");
     Ok(())
 }
 
