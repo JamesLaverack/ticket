@@ -74,6 +74,12 @@ fn write_ticketfile(ticket_reference :&str) -> io::Result<()> {
     file.write_all(ticket_reference.as_bytes())
 }
 
+fn confirm(question: &str) -> bool {
+    println!("{} (yes/no)", question);
+    let line: String = read!("{}\n");
+    line.to_lowercase().chars().next().unwrap_or('n') == 'y'
+}
+
 fn install_git_hook(force:bool) -> io::Result<()> {
     let repo = get_repo()?;
     let hook_dir = repo.path().join("hooks");
@@ -83,10 +89,8 @@ fn install_git_hook(force:bool) -> io::Result<()> {
         // A prepare-commit-msg hook already exists
         // If we're not told to force overwrite then ask if we should
         if !force {
-            println!("A `prepare-commit-msg` git hook already exists, overwrite? (Yes/No) ");
-            let line: String = read!("{}\n");
             // Early return if no permission
-            if line.to_lowercase() != "yes" {
+            if !confirm("A `prepare-commit-msg` git hook already exists, overwrite?") {
                 println!("Bye.");
                 return Ok(());
             }
