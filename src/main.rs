@@ -113,6 +113,27 @@ fn install_git_hook(force:bool) -> io::Result<()> {
     Ok(())
 }
 
+fn remove_git_hook(force:bool) -> io::Result<()> {
+    let hook_path = get_repo()?.path().join("hooks").join("prepare-commit-msg");
+
+    if !hook_path.exists() {
+        eprintln!("Ticket not installed. Try `ticket init` first.");
+        return Ok(());
+    }
+    // Early return if we don't force and we don't get a confirm
+    if !force {
+        if !confirm("Do you want to remove ticket? This will only remove the git hook, not your `.ticket` file.") {
+            println!("Abort. Ticket not uninstalled.");
+            return Ok(());
+        }
+    }
+
+    println!("Removing git hook.");
+    fs::remove_file(hook_path)?;
+    println!("Ticket removed. Goodbye.");
+    Ok(())
+}
+
 fn main() {
     let arguments = App::new(crate_name!())
         .version(crate_version!())
@@ -159,10 +180,9 @@ fn main() {
             }
         },
         ("remove", Some(remove_matches)) => {
-            if remove_matches.is_present("force") {
-                println!("Remove ticket without asking.");
-            } else {
-                println!("Remove ticket, but ask first.");
+            match remove_git_hook(remove_matches.is_present("force")) {
+                Ok(_) => {},
+                Err(e) => eprintln!("Failed to remove ticket: {}", e),
             }
         },
         ("show", _) => {
