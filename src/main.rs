@@ -26,7 +26,7 @@ fn get_repo() -> io::Result<Repository> {
         Err(_) => Err(Error::new(ErrorKind::Other, "Can't find a git repository from the current directory.")),
     }
 }
-    
+
 fn get_ticketfile() -> io::Result<PathBuf> {
     match get_repo()?.workdir() {
             Some(workdir) => Ok(workdir.join(TICKETFILE_NAME)),
