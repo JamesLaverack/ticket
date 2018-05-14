@@ -172,40 +172,63 @@ fn main() {
 
     let matches = arguments.get_matches();
 
-    match matches.subcommand() {
+    ::std::process::exit(match matches.subcommand() {
         ("init", Some(init_matches)) => {
             println!("Initilising ticket...");
             match install_git_hook(init_matches.is_present("force")) {
-                Ok(_) => {},
-                Err(e) => eprintln!("Failed to install ticket: {}", e),
+                Ok(_) => 0,
+                Err(e) => {
+                    eprintln!("Failed to install ticket: {}", e);
+                    1
+                },
             }
         },
         ("remove", Some(remove_matches)) => {
             match remove_git_hook(remove_matches.is_present("force")) {
-                Ok(_) => {},
-                Err(e) => eprintln!("Failed to remove ticket: {}", e),
+                Ok(_) => 0,
+                Err(e) => {
+                    eprintln!("Failed to remove ticket: {}", e);
+                    1
+                },
             }
         },
         ("show", _) => {
             match read_ticketfile() {
-                Ok(ticket_reference) => println!("Ticket reference: {}", ticket_reference),
-                Err(error) => eprintln!("{}", error),
+                Ok(ticket_reference) => {
+                    println!("Ticket reference: {}", ticket_reference);
+                    0
+                },
+                Err(error) => {
+                    eprintln!("{}", error);
+                    1
+                },
             }
         },
         ("set", Some(set_matches)) => {
             let ticket_reference = set_matches.value_of("TICKET_REFERENCE").unwrap();
             match write_ticketfile(ticket_reference) {
-                Ok(_) => println!("Set ticket reference to {}", ticket_reference),
-                Err(e) => eprintln!("Failed to set ticket reference: {}", e),
+                Ok(_) => {
+                    println!("Set ticket reference to {}", ticket_reference);
+                    0
+                }
+                Err(e) => {
+                    eprintln!("Failed to set ticket reference: {}", e);
+                    1
+                },
             }
         },
         ("insert-ticket-reference", Some(insert_matches)) => {
             match update_commit_msg(PathBuf::from(insert_matches.value_of("COMMIT_MSG_FILE").unwrap())) {
                 Ok(_) => {},
                 Err(e) => eprintln!("Ticket error: {}", e),
-            }
+            };
+            // Return 0 even if there's an error so we don't stop the git commit
+            0
         },
-        ("", None) => println!("A command is required, try `--help`."),
+        ("", None) => {
+            println!("A command is required, try `--help`.");
+            0
+        },
         _ => unreachable!()
-    }
+    });
 }
