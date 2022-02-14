@@ -5,7 +5,7 @@ authors = ["James Laverack <james@jameslaverack.com>"]
 description = "Insert issue tracking ticket references into your commit messages automatically."
 
 [dependencies]
-clap = "~2.31"
+clap = "~2.34"
 git2 = "0.6"
 text_io = "0.1.7"
 
