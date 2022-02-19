@@ -7,7 +7,7 @@ description = "Insert issue tracking ticket references into your commit messages
 [dependencies]
 clap = "~3.1"
 git2 = "0.13"
-text_io = "0.1.9"
+text_io = "0.1.10"
 
 [dev-dependencies]
 tempfile = "3"
